@@ -1,5 +1,3 @@
-# Файл підключення БД для взаємодії з нею
-
 from typing import AsyncGenerator
 
 from sqlalchemy import MetaData, NullPool
