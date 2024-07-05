@@ -10,6 +10,7 @@ class Post(Base):
     id = Column(Integer, primary_key=True, index=True)
     title = Column(String(100), nullable=False)
     text = Column(Text, nullable=False)
+    is_blocked = Column(Boolean, default=False)
     created_at = Column(DateTime, default=datetime.utcnow)
 
     author_id = Column(Integer, ForeignKey("users.id"))

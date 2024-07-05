@@ -1,1 +1,1 @@
-from .router import comments_router
+from .router import comment_router
