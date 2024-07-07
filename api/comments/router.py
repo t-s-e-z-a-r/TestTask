@@ -1,14 +1,22 @@
+import asyncio
+
 from fastapi import APIRouter, Depends, HTTPException, status
+
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
 from sqlalchemy.orm import selectinload
-from typing import List, Optional
+
 from database.config import get_async_session
-from database.models import Comment, Post
+from database.models import Comment
+
+from typing import List, Optional
+
 from auth.services import get_current_user
-from .schemas import CommentCreate, CommentUpdate, CommentResponse
-import asyncio
 from api.services import is_text_toxic
+
+from .schemas import CommentCreate, CommentUpdate, CommentResponse
+
+
 comment_router = APIRouter()
 
 
@@ -22,13 +30,17 @@ async def create_comment(
         text=comment.text,
         post_id=comment.post_id,
         author_id=user_id,
-        parent_id=comment.parent_id
+        parent_id=comment.parent_id,
     )
     new_comment.is_blocked = await asyncio.to_thread(is_text_toxic, comment.text)
     db.add(new_comment)
-    new_comment.replies = []
     await db.commit()
-
+    await db.refresh(new_comment, attribute_names=["replies"])
+    if new_comment.is_blocked:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Your comment has been blocked because of toxic content.",
+        )
     return new_comment
 
 
@@ -40,7 +52,11 @@ async def get_comments(
     limit: int = 10,
     db: AsyncSession = Depends(get_async_session),
 ):
-    query = select(Comment).filter(Comment.parent_id == None).options(selectinload(Comment.replies))
+    query = (
+        select(Comment)
+        .filter(Comment.parent_id == None)
+        .options(selectinload(Comment.replies))
+    )
     if post_id is not None:
         query = query.filter(Comment.post_id == post_id)
     if author_id is not None:
@@ -54,16 +70,17 @@ async def get_comments(
 
 @comment_router.get("/{comment_id}", response_model=CommentResponse)
 async def get_comment(comment_id: int, db: AsyncSession = Depends(get_async_session)):
-    query = select(Comment).options(selectinload(Comment.replies)).filter(Comment.id == comment_id)
+    query = (
+        select(Comment)
+        .options(selectinload(Comment.replies))
+        .filter(Comment.id == comment_id)
+    )
     result = await db.execute(query)
     comment = result.scalars().first()
-    print("here")
     if not comment:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND, detail="Comment not found"
         )
-    print("here 2")
-    print(comment.replies)
     return comment
 
 
@@ -91,6 +108,11 @@ async def update_comment(
     existing_comment.is_blocked = await asyncio.to_thread(is_text_toxic, comment.text)
     db.add(existing_comment)
     await db.commit()
+    if existing_comment.is_blocked:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Your comment has been blocked because of toxic content.",
+        )
     return existing_comment
 
 

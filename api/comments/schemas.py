@@ -1,4 +1,4 @@
-from pydantic import BaseModel
+from pydantic import BaseModel, ConfigDict
 from typing import List, Optional
 from datetime import datetime
 
@@ -12,6 +12,7 @@ class CommentCreate(BaseModel):
 class CommentUpdate(BaseModel):
     text: Optional[str] = None
 
+
 class Reply(BaseModel):
     id: int
     text: str
@@ -21,8 +22,9 @@ class Reply(BaseModel):
     post_id: int
     parent_id: Optional[int] = None
 
-    class Config:
+    class Config(ConfigDict):
         from_attributes = True
+
 
 class CommentResponse(BaseModel):
     id: int
@@ -34,5 +36,5 @@ class CommentResponse(BaseModel):
     parent_id: Optional[int] = None
     replies: Optional[List[Reply]] = []
 
-    class Config:
+    class Config(ConfigDict):
         from_attributes = True

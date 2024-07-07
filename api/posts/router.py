@@ -15,7 +15,6 @@ from api.services import is_text_toxic
 from .schemas import PostCreate, PostUpdate, PostResponse
 
 import asyncio
-import time
 
 post_router = APIRouter()
 
@@ -31,6 +30,12 @@ async def create_post(
         new_post.is_blocked = True
     db.add(new_post)
     await db.commit()
+    await db.refresh(new_post, attribute_names=["comments"])
+    if new_post.is_blocked:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Your post has been blocked because of toxic content.",
+        )
     return new_post
 
 
@@ -52,7 +57,9 @@ async def get_posts(
 
 @post_router.get("/{post_id}", response_model=PostResponse)
 async def get_post(post_id: int, db: AsyncSession = Depends(get_async_session)):
-    result = await db.execute(select(Post).options(selectinload(Post.comments)).filter(Post.id == post_id))
+    result = await db.execute(
+        select(Post).options(selectinload(Post.comments)).filter(Post.id == post_id)
+    )
     post = result.scalars().first()
     if not post:
         raise HTTPException(
@@ -68,7 +75,9 @@ async def update_post(
     db: AsyncSession = Depends(get_async_session),
     user_id: int = Depends(get_current_user),
 ):
-    result = await db.execute(select(Post).filter(Post.id == post_id))
+    result = await db.execute(
+        select(Post).filter(Post.id == post_id).options(selectinload(Post.comments))
+    )
     existing_post = result.scalars().first()
     if not existing_post:
         raise HTTPException(
@@ -83,12 +92,18 @@ async def update_post(
         existing_post.title = post.title
     if post.text is not None:
         existing_post.text = post.text
-    
-    existing_post.is_blocked = await asyncio.to_thread(is_text_toxic, f"{post.title} {post.text}")
-
+    existing_post.is_blocked = await asyncio.to_thread(
+        is_text_toxic, f"{post.title} {post.text}"
+    )
     db.add(existing_post)
     await db.commit()
+    if existing_post.is_blocked:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Your post has been blocked because of toxic content.",
+        )
     return existing_post
+
 
 @post_router.delete("/{post_id}", response_model=dict)
 async def delete_post(

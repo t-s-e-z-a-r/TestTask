@@ -1,7 +1,8 @@
-from pydantic import BaseModel
+from pydantic import BaseModel, ConfigDict
 from typing import List, Optional
 from datetime import datetime
 from api.comments.schemas import CommentResponse
+
 
 class PostCreate(BaseModel):
     title: str
@@ -20,7 +21,7 @@ class PostResponse(BaseModel):
     created_at: datetime
     is_blocked: bool
     author_id: int
-    comments: List[CommentResponse] = [] 
-    
-    class Config:
+    comments: List[CommentResponse] = []
+
+    class Config(ConfigDict):
         from_attributes = True
