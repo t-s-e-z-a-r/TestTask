@@ -35,7 +35,7 @@ services:
   celery_worker:
     build:
       context: .
-    command: celery -A celery.worker worker --loglevel=info
+    command: celery -A celery_app.worker worker --loglevel=info
     volumes:
       - .:/backend
     env_file:

@@ -9,6 +9,7 @@ vertexai.init(project=project_id, location="us-central1")
 
 model = GenerativeModel(model_name="gemini-1.5-flash-001")
 
+
 def is_text_toxic(text: str) -> bool:
     prompt = f"Analyze the following text in any language and return 'true' if the text could be offensive or contains harmful language in any way, otherwise return 'false':\n{text}"
 
@@ -17,7 +18,9 @@ def is_text_toxic(text: str) -> bool:
         try:
             response = model.generate_content(prompt)
             if response.candidates[0].content and response.candidates[0].content.parts:
-                result_text = response.candidates[0].content.parts[0].text.strip().lower()
+                result_text = (
+                    response.candidates[0].content.parts[0].text.strip().lower()
+                )
                 if "false" in result_text:
                     return False
             return True
@@ -29,6 +32,7 @@ def is_text_toxic(text: str) -> bool:
                     status_code=status.HTTP_429_TOO_MANY_REQUESTS,
                     detail="Quota exceeded. Please try again later.",
                 )
+
 
 def generate_auto_response(text: str) -> str:
     prompt = f"Generate a polite and relevant response to the following comment 2 or 3 sentences:\n{text}"

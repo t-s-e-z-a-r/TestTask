@@ -10,7 +10,7 @@ from database.models import Post
 from typing import List, Optional
 
 from auth.services import get_current_user
-from api.services import is_text_toxic
+from celery_app import is_text_toxic
 
 from .schemas import PostCreate, PostUpdate, PostResponse
 

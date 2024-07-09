@@ -1,5 +1,4 @@
 from fastapi import APIRouter, Depends, HTTPException, status
-from fastapi.security import OAuth2PasswordRequestForm
 
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
@@ -7,9 +6,16 @@ from sqlalchemy.future import select
 from database.config import get_async_session
 from database.models import User
 
-from .schemas import UserSchema, MessageResponse, TokenResponse
+from .schemas import UserSchema, MessageResponse, TokenResponse, UserUpdateSchema
 
-from .services import create_access_token, hash_password, verify_password
+from .services import (
+    create_access_token,
+    hash_password,
+    verify_password,
+    get_current_user,
+)
+
+from database.config import metadata, Base
 
 auth_router = APIRouter()
 
@@ -47,3 +53,27 @@ async def login(
             )
         access_token = create_access_token(data={"user_id": user.id})
         return {"access_token": access_token, "token_type": "bearer"}
+
+
+@auth_router.put("/user", response_model=MessageResponse)
+async def update_user(
+    user_update: UserUpdateSchema,
+    user_id: int = Depends(get_current_user),
+    db: AsyncSession = Depends(get_async_session),
+):
+    async with db.begin():
+        user = await db.get(User, user_id)
+        if not user:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="User not found",
+            )
+
+        if user_update.auto_respond is not None:
+            user.auto_respond = user_update.auto_respond
+
+        if user_update.respond_time is not None:
+            user.respond_time = user_update.respond_time
+
+        await db.commit()
+        return {"msg": "User updated successfully"}

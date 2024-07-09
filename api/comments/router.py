@@ -7,13 +7,12 @@ from sqlalchemy.future import select
 from sqlalchemy.orm import selectinload
 
 from database.config import get_async_session
-from database.models import Comment
+from database.models import Comment, User
 
 from typing import List, Optional
 
 from auth.services import get_current_user
-from api.services import is_text_toxic
-
+from celery_app import create_auto_response_comment, is_text_toxic
 from .schemas import CommentCreate, CommentUpdate, CommentResponse
 
 
@@ -41,6 +40,13 @@ async def create_comment(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="Your comment has been blocked because of toxic content.",
         )
+    if not comment.parent_id:
+        user = await db.get(User, user_id)
+        if user.auto_respond:
+            # create_auto_response_comment.apply_async((new_comment.id,), countdown=user.respond_time * 60)
+            create_auto_response_comment.apply_async(
+                (new_comment.id,), countdown=user.respond_time
+            )
     return new_comment
 
 
