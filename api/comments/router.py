@@ -25,6 +25,19 @@ async def create_comment(
     db: AsyncSession = Depends(get_async_session),
     user_id: int = Depends(get_current_user),
 ):
+    if comment.parent_id:
+        parent_comment = await db.get(Comment, comment.parent_id)
+        if not parent_comment:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Parent comment not found",
+            )
+        if parent_comment.post_id != comment.post_id:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Post ID of the reply does not match the parent comment's post ID",
+            )
+
     new_comment = Comment(
         text=comment.text,
         post_id=comment.post_id,
@@ -114,6 +127,7 @@ async def update_comment(
     existing_comment.is_blocked = await asyncio.to_thread(is_text_toxic, comment.text)
     db.add(existing_comment)
     await db.commit()
+    await db.refresh(existing_comment, attribute_names=["replies"])
     if existing_comment.is_blocked:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,

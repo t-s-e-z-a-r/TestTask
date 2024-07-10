@@ -1,7 +1,7 @@
 from pydantic import BaseModel, ConfigDict
 from typing import List, Optional
 from datetime import datetime
-from api.comments.schemas import CommentResponse
+from api.comments.schemas import CommentResponse, Reply
 
 
 class PostCreate(BaseModel):

@@ -63,7 +63,9 @@ async def update_user(
 ):
     async with db.begin():
         user = await db.get(User, user_id)
-        if not user:
+        if (
+            not user
+        ):  # It doesn't seem that we could receive this exception but it's better to have this verification
             raise HTTPException(
                 status_code=status.HTTP_404_NOT_FOUND,
                 detail="User not found",
@@ -73,6 +75,11 @@ async def update_user(
             user.auto_respond = user_update.auto_respond
 
         if user_update.respond_time is not None:
+            if user_update.respond_time <= 0:
+                raise HTTPException(
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    detail="Respond time must be greater than 0",
+                )
             user.respond_time = user_update.respond_time
 
         await db.commit()

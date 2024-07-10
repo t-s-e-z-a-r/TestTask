@@ -5,7 +5,7 @@ from sqlalchemy.future import select
 from sqlalchemy.orm import selectinload
 
 from database.config import get_async_session
-from database.models import Post
+from database.models import Post, Comment
 
 from typing import List, Optional
 
@@ -46,7 +46,9 @@ async def get_posts(
     limit: int = 10,
     db: AsyncSession = Depends(get_async_session),
 ):
-    query = select(Post).options(selectinload(Post.comments))
+    query = select(Post).options(
+        selectinload(Post.comments).selectinload(Comment.replies)
+    )
     if author_id is not None:
         query = query.filter(Post.author_id == author_id)
     query = query.offset(skip).limit(limit)
@@ -58,7 +60,9 @@ async def get_posts(
 @post_router.get("/{post_id}", response_model=PostResponse)
 async def get_post(post_id: int, db: AsyncSession = Depends(get_async_session)):
     result = await db.execute(
-        select(Post).options(selectinload(Post.comments)).filter(Post.id == post_id)
+        select(Post)
+        .options(selectinload(Post.comments).selectinload(Comment.replies))
+        .filter(Post.id == post_id)
     )
     post = result.scalars().first()
     if not post:
@@ -76,7 +80,9 @@ async def update_post(
     user_id: int = Depends(get_current_user),
 ):
     result = await db.execute(
-        select(Post).filter(Post.id == post_id).options(selectinload(Post.comments))
+        select(Post)
+        .filter(Post.id == post_id)
+        .options(selectinload(Post.comments).selectinload(Comment.replies))
     )
     existing_post = result.scalars().first()
     if not existing_post:

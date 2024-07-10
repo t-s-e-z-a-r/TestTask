@@ -20,7 +20,7 @@ from database.config import (
     DB_PASS,
     DB_PORT,
 )
-
+from database.models import Post, Comment
 from main import app
 
 DB_NAME_TEST = config("DB_NAME_TEST")
@@ -44,7 +44,7 @@ async def override_get_async_session() -> AsyncGenerator[AsyncSession, None]:
 app.dependency_overrides[get_async_session] = override_get_async_session
 
 
-@pytest.fixture(autouse=True, scope="session")
+@pytest.fixture(scope="session", autouse=True)
 async def prepare_database():
     async with engine_test.begin() as conn:
         await conn.run_sync(metadata.create_all)
@@ -60,3 +60,32 @@ client = TestClient(app)
 async def ac() -> AsyncGenerator[AsyncClient, None]:
     async with AsyncClient(app=app, base_url="http://test") as ac:
         yield ac
+
+
+@pytest.fixture(scope="session")
+async def auth_headers(ac: AsyncClient):
+    response = await ac.post(
+        "/auth/register", json={"username": "testuser", "password": "testpassword"}
+    )
+    response = await ac.post(
+        "/auth/login", json={"username": "testuser", "password": "testpassword"}
+    )
+    async with async_session_maker() as session:
+        for i in range(0, 2):
+            post = Post(title=f"Test Post {i}", text="This is a test post", author_id=1)
+            session.add(post)
+            await session.commit()
+            await session.refresh(post)
+
+            comment = Comment(
+                text=f"This is a test comment for post {i}",
+                author_id=1,
+                post_id=post.id,
+            )
+            session.add(comment)
+            await session.commit()
+            await session.refresh(comment)
+    data = response.json()
+    access_token = data["access_token"]
+    headers = {"Authorization": f"Bearer {access_token}"}
+    return headers

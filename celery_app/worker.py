@@ -31,13 +31,11 @@ def create_auto_response_comment(comment_id: int):
 
 async def _create_auto_response_comment(comment_id: int):
     async with async_session_maker() as session:
-        print("Started")
         original_comment = await session.get(Comment, comment_id)
         if not original_comment:
             return
 
         response_text = generate_auto_response(original_comment.text)
-        print(f"Response: {response_text}")
         new_comment = Comment(
             text=response_text,
             post_id=original_comment.post_id,

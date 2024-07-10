@@ -1,22 +1,7 @@
 import pytest
 from fastapi import status
-from sqlalchemy.ext.asyncio import AsyncSession
 from httpx import AsyncClient
-from unittest.mock import AsyncMock, patch
-
-
-@pytest.fixture(scope="session")
-async def auth_headers(ac: AsyncClient):
-    response = await ac.post(
-        "/auth/register", json={"username": "testuser", "password": "testpassword"}
-    )
-    response = await ac.post(
-        "/auth/login", json={"username": "testuser", "password": "testpassword"}
-    )
-    data = response.json()
-    access_token = data["access_token"]
-    headers = {"Authorization": f"Bearer {access_token}"}
-    return headers
+from conftest import auth_headers
 
 
 @pytest.mark.asyncio
@@ -45,7 +30,7 @@ async def test_get_post(ac: AsyncClient):
     response = await ac.get(f"/api/posts/1")
     assert response.status_code == status.HTTP_200_OK
     data = response.json()
-    assert data["title"] == "Test Post"
+    assert data["title"] == "Test Post 0"
     assert data["text"] == "This is a test post"
 
 
@@ -69,9 +54,7 @@ async def test_update_post(ac: AsyncClient, auth_headers):
         json={"title": "Updated Post", "text": "This is an updated test post"},
         headers=auth_headers,
     )
-    assert (
-        response.status_code == status.HTTP_200_OK
-    ), f"Expected status 200, got {response.status_code}. Response: {response.json()}"
+    assert response.status_code == status.HTTP_200_OK
     data = response.json()
     assert data["title"] == "Updated Post"
     assert data["text"] == "This is an updated test post"
@@ -80,7 +63,7 @@ async def test_update_post(ac: AsyncClient, auth_headers):
 @pytest.mark.asyncio
 async def test_update_post_blocked(ac: AsyncClient, auth_headers):
     response = await ac.put(
-        "/api/posts/1",
+        "/api/posts/2",
         json={"title": "Updated Blocked Post", "text": "This is a toxic updated post"},
         headers=auth_headers,
     )
@@ -92,7 +75,7 @@ async def test_update_post_blocked(ac: AsyncClient, auth_headers):
 
 @pytest.mark.asyncio
 async def test_delete_post(ac: AsyncClient, auth_headers):
-    response = await ac.delete("/api/posts/1", headers=auth_headers)
+    response = await ac.delete("/api/posts/2", headers=auth_headers)
     assert response.status_code == status.HTTP_200_OK
     data = response.json()
     assert data["msg"] == "Post successfully deleted"
