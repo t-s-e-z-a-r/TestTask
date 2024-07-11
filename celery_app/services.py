@@ -35,8 +35,11 @@ def is_text_toxic(text: str) -> bool:
 
 
 def generate_auto_response(text: str) -> str:
-    prompt = f"Generate a polite and relevant response to the following comment 2 or 3 sentences:\n{text}"
-
+    prompt = f"""
+    Generate a polite and relevant response to the following comment as if a person is responding. If the comment is personal, provide the most popular or general response. Keep the response 2 or 3 sentences:
+    
+    Comment: {text}
+    """
     max_retries = 61
     for attempt in range(max_retries):
         try:
