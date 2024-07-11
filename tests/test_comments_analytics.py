@@ -5,11 +5,13 @@ from main import app
 from conftest import client, async_session_maker
 from sqlalchemy.sql import text
 
+
 @pytest.fixture(scope="function", autouse=True)
 async def setup_comments_data():
     async with async_session_maker() as session:
         await session.execute(
-            text("""
+            text(
+                """
             INSERT INTO comments (text, is_blocked, created_at, author_id, post_id, parent_id)
             VALUES 
             ('This is a comment to the test post', false, '2023-07-10 17:38:24.126645', 1, 1, NULL),
@@ -24,10 +26,12 @@ async def setup_comments_data():
             ('I''m interested in learning more about the latest updates.', false, '2023-07-19 16:38:24.126645', 1, 1, 8),
             ('This comment is blocked due to toxic content.', true, '2023-07-20 17:38:24.126645', 1, 1, NULL),
             ('Another blocked comment due to inappropriate language.', true, '2023-07-21 18:38:24.126645', 1, 1, NULL);
-            """)
+            """
+            )
         )
         await session.commit()
-        
+
+
 @pytest.mark.asyncio
 async def test_comments_daily_breakdown(ac: AsyncClient):
     date_from = "2023-07-10"
@@ -39,7 +43,7 @@ async def test_comments_daily_breakdown(ac: AsyncClient):
 
     assert response.status_code == 200
     data = response.json()
-    assert len(data) == 12  
+    assert len(data) == 12
     assert data[0]["date"] == "2023-07-10"
     assert data[0]["total_comments"] == 1
     assert data[0]["blocked_comments"] == 0

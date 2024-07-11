@@ -11,6 +11,7 @@ from typing import AsyncGenerator
 from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy.pool import NullPool
+from sqlalchemy.future import select
 import time
 from database.config import (
     get_async_session,
@@ -20,7 +21,7 @@ from database.config import (
     DB_PASS,
     DB_PORT,
 )
-from database.models import Post, Comment
+from database.models import Post, Comment, User
 from main import app
 
 DB_NAME_TEST = config("DB_NAME_TEST")
@@ -46,7 +47,7 @@ app.dependency_overrides[get_async_session] = override_get_async_session
 
 @pytest.fixture(scope="session", autouse=True)
 async def prepare_database():
-    time.sleep(45) # To avoid database starting up error
+    # time.sleep(45)  # To avoid database starting up error
     async with engine_test.begin() as conn:
         await conn.run_sync(metadata.create_all)
     yield
@@ -90,3 +91,26 @@ async def auth_headers(ac: AsyncClient):
     access_token = data["access_token"]
     headers = {"Authorization": f"Bearer {access_token}"}
     return headers
+
+
+@pytest.fixture
+async def setup_comment():
+    async with async_session_maker() as session:
+        user = await session.execute(select(User).filter(User.username == "testuser"))
+        user = user.scalar_one()
+
+        post = Post(title="Test Post", text="This is a test post", author_id=user.id)
+        session.add(post)
+        await session.commit()
+        await session.refresh(post)
+
+        comment = Comment(
+            text="This is a test comment for the post",
+            author_id=user.id,
+            post_id=post.id,
+        )
+        session.add(comment)
+        await session.commit()
+        await session.refresh(comment)
+
+        return comment

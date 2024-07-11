@@ -53,7 +53,9 @@ async def create_comment(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="Your comment has been blocked because of toxic content.",
         )
-    if not comment.parent_id:  # Here should be if comment.author_id != user_id in order to avoid answering your own question but for demonstration purposes 
+    if (
+        not comment.parent_id
+    ):  # Here should be if comment.author_id != user_id in order to avoid answering your own question but for demonstration purposes
         user = await db.get(User, user_id)
         if user.auto_respond:
             # create_auto_response_comment.apply_async((new_comment.id,), countdown=user.respond_time * 60)
