@@ -57,7 +57,7 @@ async def create_comment(
         user = await db.get(User, user_id)
         if user.auto_respond:
             # create_auto_response_comment.apply_async((new_comment.id,), countdown=user.respond_time * 60)
-            create_auto_response_comment.apply_async(
+            create_auto_response_comment.apply_async(  # HERE value should be multiplied by 60 but it wasn't implemented because of demonstration purposes
                 (new_comment.id,), countdown=user.respond_time
             )
     return new_comment
