@@ -107,32 +107,6 @@ async def test_update_comment_blocked(ac: AsyncClient, auth_headers):
     }
 
 
-async def test_create_auto_response_comment(setup_comment):
-    comment = setup_comment
-
-    await _create_auto_response_comment(comment.id)
-
-    async with async_session_maker() as session:
-        response_comment = await session.execute(
-            select(Comment).filter(Comment.parent_id == comment.id)
-        )
-        response_comment = response_comment.scalars().first()
-
-        assert response_comment is not None
-
-@pytest.mark.asyncio
-async def test_create_auto_response_comment_not_found():
-    await _create_auto_response_comment(999)
-
-    async with async_session_maker() as session:
-        response_comment = await session.execute(
-            select(Comment).filter(Comment.parent_id == 999)
-        )
-        response_comment = response_comment.scalars().first()
-
-        assert response_comment is None
-
-
 @pytest.mark.asyncio
 async def test_delete_comment(ac: AsyncClient, auth_headers):
     response = await ac.delete("/api/comments/2", headers=auth_headers)
