@@ -140,38 +140,20 @@ async def test_delete_comment_not_found(ac: AsyncClient, auth_headers):
     assert response.json() == {"detail": "Comment not found"}
 
 
-@pytest.fixture(scope="function")
-async def setup_comment():
-    async with async_session_maker() as session:
-        comment = Comment(
-            text="This is a test comment",
-            post_id=1,
-            author_id=1,
-        )
-        session.add(comment)
-        await session.commit()
-        await session.refresh(comment)
-        yield comment
-        await session.delete(comment)
-        await session.commit()
-
-
 @pytest.mark.asyncio
-async def test_create_auto_response_comment(setup_comment):
-    comment = setup_comment
-
-    await _create_auto_response_comment(comment.id)
+async def test_create_auto_response_comment():
+    await _create_auto_response_comment(2)
 
     async with async_session_maker() as session:
         response_comment = await session.execute(
-            select(Comment).filter(Comment.parent_id == comment.id)
+            select(Comment).filter(Comment.parent_id == 2)
         )
         response_comment = response_comment.scalars().first()
 
         assert response_comment is not None
-        assert response_comment.post_id == comment.post_id
-        assert response_comment.author_id == comment.author_id
-        assert response_comment.parent_id == comment.id
+        assert response_comment.post_id == 1
+        assert response_comment.author_id == 1
+        assert response_comment.parent_id == 2
 
 
 @pytest.mark.asyncio

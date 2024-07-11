@@ -41,14 +41,12 @@ async def create_post(
 
 @post_router.get("/", response_model=List[PostResponse])
 async def get_posts(
-    author_id: Optional[int] = None,
+    author_id: int = None,
     skip: int = 0,
     limit: int = 10,
     db: AsyncSession = Depends(get_async_session),
 ):
-    query = select(Post).options(
-        selectinload(Post.comments).selectinload(Comment.replies)
-    )
+    query = select(Post)
     if author_id is not None:
         query = query.filter(Post.author_id == author_id)
     query = query.offset(skip).limit(limit)
@@ -59,11 +57,7 @@ async def get_posts(
 
 @post_router.get("/{post_id}", response_model=PostResponse)
 async def get_post(post_id: int, db: AsyncSession = Depends(get_async_session)):
-    result = await db.execute(
-        select(Post)
-        .options(selectinload(Post.comments).selectinload(Comment.replies))
-        .filter(Post.id == post_id)
-    )
+    result = await db.execute(select(Post).filter(Post.id == post_id))
     post = result.scalars().first()
     if not post:
         raise HTTPException(
@@ -79,11 +73,7 @@ async def update_post(
     db: AsyncSession = Depends(get_async_session),
     user_id: int = Depends(get_current_user),
 ):
-    result = await db.execute(
-        select(Post)
-        .filter(Post.id == post_id)
-        .options(selectinload(Post.comments).selectinload(Comment.replies))
-    )
+    result = await db.execute(select(Post).filter(Post.id == post_id))
     existing_post = result.scalars().first()
     if not existing_post:
         raise HTTPException(

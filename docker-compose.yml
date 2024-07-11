@@ -12,11 +12,12 @@ services:
       - "5432:5432"
     volumes:
       - ./postgres_data:/var/lib/postgresql/data/
-      - ./database/create_second_db.sh:/docker-entrypoint-initdb.d/create_second_db.sh
+      - ./testbase_db.sh:/docker-entrypoint-initdb.d/testbase_db.sh
     env_file:
       - .env
 
   backend:
+    restart: always
     build:
       context: .
     command: bash -c "alembic upgrade head && uvicorn main:app --host 0.0.0.0 --port 8000 --reload"

@@ -65,17 +65,14 @@ async def create_comment(
 
 @comment_router.get("/", response_model=List[CommentResponse])
 async def get_comments(
-    post_id: Optional[int] = None,
-    author_id: Optional[int] = None,
+    post_id: int = None,
+    author_id: int = None,
+    parent_id: int = None,
     skip: int = 0,
     limit: int = 10,
     db: AsyncSession = Depends(get_async_session),
 ):
-    query = (
-        select(Comment)
-        .filter(Comment.parent_id == None)
-        .options(selectinload(Comment.replies))
-    )
+    query = select(Comment).filter(Comment.parent_id == parent_id)
     if post_id is not None:
         query = query.filter(Comment.post_id == post_id)
     if author_id is not None:
@@ -89,11 +86,7 @@ async def get_comments(
 
 @comment_router.get("/{comment_id}", response_model=CommentResponse)
 async def get_comment(comment_id: int, db: AsyncSession = Depends(get_async_session)):
-    query = (
-        select(Comment)
-        .options(selectinload(Comment.replies))
-        .filter(Comment.id == comment_id)
-    )
+    query = select(Comment).filter(Comment.id == comment_id)
     result = await db.execute(query)
     comment = result.scalars().first()
     if not comment:
@@ -127,7 +120,7 @@ async def update_comment(
     existing_comment.is_blocked = await asyncio.to_thread(is_text_toxic, comment.text)
     db.add(existing_comment)
     await db.commit()
-    await db.refresh(existing_comment, attribute_names=["replies"])
+    await db.refresh(existing_comment)
     if existing_comment.is_blocked:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
