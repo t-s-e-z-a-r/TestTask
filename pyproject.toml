@@ -2,4 +2,7 @@
 pythonpath = [
   ".",
 ]
-asyncio_mode="auto"
+asyncio_mode = "auto"
+testpaths = [
+  "tests"
+]
