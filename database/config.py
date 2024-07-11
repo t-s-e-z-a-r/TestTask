@@ -14,8 +14,6 @@ DB_NAME = config("DB_NAME")
 DB_USER = config("DB_USER")
 DB_PASS = config("DB_PASS")
 
-time.sleep(3)  # Backend запускається раніше ніж БД і виникає помилка
-
 DATABASE_URL = f"postgresql+asyncpg://{DB_USER}:{DB_PASS}@{DB_HOST}:{DB_PORT}/{DB_NAME}"
 metadata = MetaData()
 Base = declarative_base(metadata=metadata)
